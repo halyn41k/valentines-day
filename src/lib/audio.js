@@ -1,55 +1,58 @@
+// src/lib/audio.js
 import { Howl } from 'howler'
 
 let enabled = false
+let initialized = false
 
-const clickSound = new Howl({
-  src: ['/audio/click.mp3'],
-  volume: 0.6,
-  preload: true
-})
+let click = null
+let bgm = null
 
-const bgmSound = new Howl({
-  src: ['/audio/bgm.mp3'],
-  volume: 0,
-  loop: true,
-  preload: true
-})
+function initIfNeeded() {
+  if (initialized) return
+  initialized = true
 
-function fadeInBgm() {
-  if (!bgmSound.playing()) {
-    bgmSound.play()
-  }
-  bgmSound.fade(bgmSound.volume(), 0.2, 1200)
-}
+  click = new Howl({
+    src: ['/audio/click.mp3'],
+    volume: 0.35,
+  })
 
-function fadeOutBgm() {
-  bgmSound.fade(bgmSound.volume(), 0, 600)
-  setTimeout(() => {
-    if (!enabled) {
-      bgmSound.pause()
-    }
-  }, 620)
-}
+  bgm = new Howl({
+    src: ['/audio/bgm.mp3'],
+    loop: true,
+    volume: 0.0,
+  })
 
-export function enableAudio() {
-  if (enabled) return
-  enabled = true
-  fadeInBgm()
+  // не валимо додаток, якщо файлів немає/не грузиться
+  click.on('loaderror', () => {})
+  bgm.on('loaderror', () => {})
 }
 
 export function toggleAudio() {
+  initIfNeeded()
   enabled = !enabled
+
   if (enabled) {
-    fadeInBgm()
+    if (!bgm.playing()) bgm.play()
+    bgm.fade(bgm.volume(), 0.22, 600)
   } else {
-    fadeOutBgm()
+    try {
+      bgm.fade(bgm.volume(), 0.0, 300)
+      setTimeout(() => {
+        if (bgm && bgm.playing()) bgm.stop()
+      }, 350)
+    } catch (_) {}
   }
+
   return enabled
 }
 
 export function playClick() {
   if (!enabled) return
-  clickSound.play()
+  initIfNeeded()
+  try {
+    click.stop()
+    click.play()
+  } catch (_) {}
 }
 
 export function isAudioEnabled() {

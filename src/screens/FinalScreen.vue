@@ -10,7 +10,7 @@
     <div class="pulse-heart">💖</div>
 
     <button class="pixel-btn" @click="restart">Переграти ще раз</button>
-    <small>З Днем Валентина 💝</small>
+    <small>З Днем Святого Валентина 💝</small>
   </section>
 </template>
 
