@@ -2,7 +2,7 @@
   <section class="screen-card">
     <h1>Привіт 💗</h1>
 
-    <!-- Стан 1: питання -->
+    <!-- СТАН 1 -->
     <template v-if="stage === 'question'">
       <p>Цей сайт призначений тільки для однієї людини. Ти — Віталік?</p>
 
@@ -16,7 +16,7 @@
       </button>
     </template>
 
-    <!-- Стан 2: пароль -->
+    <!-- СТАН 2: ПАРОЛЬ -->
     <template v-else-if="stage === 'password'">
       <h2 class="sub">Окей, тоді пароль 😼</h2>
 
@@ -30,35 +30,32 @@
           class="pixel-input"
           type="password"
           inputmode="numeric"
-          autocomplete="one-time-code"
           placeholder="Введи 4 цифри"
-          @keydown.enter="submitPassword"
+          @keydown.enter="submit"
         />
-        <button class="pixel-btn" @click="submitPassword">
-          Увійти →
-        </button>
       </div>
 
-      <p v-if="error" class="error">
-        Нєє 😈 Неправильно. Спробуй ще раз.
-      </p>
+      <!-- КНОПКА-ВТІКАЧ -->
+      <button
+        class="pixel-btn runaway"
+        :class="{ jiggle: jiggle }"
+        :style="buttonStyle"
+        @click="submit"
+      >
+        {{ buttonText }}
+      </button>
+
+      <p v-if="error" class="error">Нєє 😈 Неправильно. Спробуй ще раз.</p>
 
       <div class="row-buttons">
-        <button class="pixel-btn ghost" @click="backToQuestion">
-          ← Назад
-        </button>
-        <button class="pixel-btn audio" @click="activateAudio">
-          {{ audioButtonText }}
-        </button>
+        <button class="pixel-btn ghost" @click="backToQuestion">← Назад</button>
       </div>
     </template>
 
-    <!-- Стан 3: чужий -->
+    <!-- СТАН 3 -->
     <template v-else>
       <p class="go-away">Виходи звідси 🖕</p>
-      <button class="pixel-btn ghost" @click="backToQuestion">
-        ← Я пожартував
-      </button>
+      <button class="pixel-btn ghost" @click="backToQuestion">← Я пожартував</button>
     </template>
   </section>
 </template>
@@ -70,26 +67,54 @@ import { playClick, toggleAudio, isAudioEnabled } from '../lib/audio'
 const emit = defineEmits(['next'])
 
 const audioEnabled = ref(isAudioEnabled())
-const stage = ref('question') // 'question' | 'password' | 'stranger'
+const stage = ref('question')
 
 const password = ref('')
 const error = ref(false)
+
+/* 🔥 втечі */
+const escapeCount = ref(0)
+const maxEscapes = 3
+
+const offset = ref({ x: 0, y: 0, r: 0 })
+const jiggle = ref(false)
+
+/* 💨 fart */
+const fart = new Audio('audio/fart.mp3')
+fart.volume = 0.7
+
+const positions = [
+  { x: 170, y: -80, r: 8 },
+  { x: -160, y: -20, r: -10 },
+  { x: 120, y: 95, r: 12 },
+]
 
 const audioButtonText = computed(() =>
   audioEnabled.value ? 'Вимкнути звук 🔇' : 'Увімкнути звук 🔊'
 )
 
+const buttonText = computed(() => {
+  if (escapeCount.value === 0) return 'Увійти →'
+  if (escapeCount.value === 1) return 'хі-хі 😼'
+  if (escapeCount.value === 2) return 'майже 👀'
+  if (escapeCount.value === 3) return 'ну ладно… 💗'
+  return 'Увійти →'
+})
+
+const buttonStyle = computed(() => ({
+  transform: `translate(${offset.value.x}px, ${offset.value.y}px) rotate(${offset.value.r}deg)`,
+  transition: 'transform 0.22s cubic-bezier(.2,1.4,.4,1)',
+}))
+
 function activateAudio() {
-  const state = toggleAudio()
-  audioEnabled.value = state
+  audioEnabled.value = toggleAudio()
   playClick()
 }
 
 function chooseVitalik() {
   playClick()
   stage.value = 'password'
-  password.value = ''
-  error.value = false
+  reset()
 }
 
 function chooseStranger() {
@@ -100,25 +125,67 @@ function chooseStranger() {
 function backToQuestion() {
   playClick()
   stage.value = 'question'
-  password.value = ''
-  error.value = false
+  reset()
 }
 
-function submitPassword() {
+function reset() {
+  escapeCount.value = 0
+  offset.value = { x: 0, y: 0, r: 0 }
+  password.value = ''
+  error.value = false
+  jiggle.value = false
+}
+
+function doJiggle() {
+  jiggle.value = false
+  requestAnimationFrame(() => {
+    jiggle.value = true
+    setTimeout(() => (jiggle.value = false), 260)
+  })
+}
+
+function runAway() {
+  const pos = positions[Math.min(escapeCount.value, positions.length - 1)]
+  offset.value = pos
+  doJiggle()
+}
+
+function returnHome() {
+  offset.value = { x: 0, y: 0, r: 0 }
+  doJiggle()
+}
+
+function submit() {
   playClick()
+
+  // 🏃‍♂️ 3 втечі
+  if (escapeCount.value < maxEscapes) {
+    escapeCount.value += 1
+    runAway()
+
+    // 💨 НА ТРЕТІЙ ВТЕЧІ — FART
+    if (escapeCount.value === maxEscapes) {
+      fart.currentTime = 0
+      fart.play().catch(() => {})
+    }
+
+    return
+  }
+
+  // після 3 втечі — повертається і перевіряє пароль
+  returnHome()
+
   if (password.value.trim() === '5322') {
-    error.value = false
     emit('next')
     return
   }
+
   error.value = true
   password.value = ''
 }
 </script>
 
 <style scoped>
-/* ---------- layout ---------- */
-
 .row-buttons {
   display: flex;
   gap: 12px;
@@ -128,66 +195,50 @@ function submitPassword() {
 }
 
 .sub {
-  margin: 0 0 8px;
+  margin-bottom: 8px;
 }
 
 .hint {
   font-size: 12px;
-  opacity: 0.9;
-  margin: 0 0 14px;
+  margin-bottom: 14px;
   line-height: 1.5;
 }
 
 .pass-row {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
-  margin: 10px 0 8px;
+  margin-bottom: 8px;
 }
-
-/* ---------- INPUT: PIXEL FIX ---------- */
 
 .pixel-input {
-  /* ШРИФТ — ОЦЕ ГОЛОВНЕ */
   font-family: "PixelUA", system-ui, sans-serif;
-
   background: #fff0f6;
-  border: 3px solid #ff7dbd; /* рожевий бордер */
+  border: 3px solid #ff7dbd;
   border-radius: 12px;
-
   padding: 10px 12px;
   font-size: 14px;
-  letter-spacing: 1px;
-
-  color: var(--text);
   width: min(280px, 100%);
   outline: none;
-
-  /* прибираємо дефолтні стилі браузера */
-  appearance: none;
-  -webkit-appearance: none;
 }
 
-/* піксельний фокус */
-.pixel-input:focus {
-  background: #ffffff;
-  border-color: #ff4fa3;
-  box-shadow:
-    0 0 0 3px rgba(255, 79, 163, 0.25),
-    inset 0 0 0 2px #ffffff;
+.runaway {
+  position: relative;
+  margin-top: 12px;
+  will-change: transform;
 }
 
-/* placeholder теж піксельний */
-.pixel-input::placeholder {
-  font-family: "PixelUA", system-ui, sans-serif;
-  opacity: 0.7;
+/* веселий трус */
+.jiggle {
+  animation: jiggle 0.22s ease;
 }
 
-/* ---------- misc ---------- */
+@keyframes jiggle {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.06); }
+  70%  { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
 
 .error {
-  margin: 8px 0 0;
+  margin-top: 10px;
   font-size: 12px;
   color: #7a144b;
   font-weight: 700;
@@ -196,9 +247,5 @@ function submitPassword() {
 .go-away {
   font-size: 18px;
   margin: 10px 0 14px;
-}
-
-.audio {
-  margin-top: 14px;
 }
 </style>

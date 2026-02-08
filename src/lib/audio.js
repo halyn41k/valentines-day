@@ -7,6 +7,9 @@ let initialized = false
 let click = null
 let bgm = null
 
+// кеш для одноразових звуків (pop/fail/meow/fart)
+const sfxCache = new Map()
+
 function initIfNeeded() {
   if (initialized) return
   initialized = true
@@ -57,4 +60,33 @@ export function playClick() {
 
 export function isAudioEnabled() {
   return enabled
+}
+
+/**
+ * Універсальний SFX (pop/fail/meow/fart і тд)
+ * path приклад: '/audio/pop.mp3'
+ */
+export function playSound(path, opts = {}) {
+  if (!enabled) return
+  initIfNeeded()
+
+  const volume = typeof opts.volume === 'number' ? opts.volume : 0.6
+
+  try {
+    let sfx = sfxCache.get(path)
+    if (!sfx) {
+      sfx = new Howl({
+        src: [path],
+        volume,
+      })
+      sfx.on('loaderror', () => {})
+      sfxCache.set(path, sfx)
+    } else {
+      sfx.volume(volume)
+    }
+
+    // щоб один і той самий звук можна було "тик-тик"
+    sfx.stop()
+    sfx.play()
+  } catch (_) {}
 }

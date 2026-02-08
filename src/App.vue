@@ -11,27 +11,37 @@
         @restart="restart"
       />
     </main>
+
+    <!-- 🐱 котик пасхалка -->
+    <CatEasterEgg />
   </div>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
+
 import IntroScreen from './screens/IntroScreen.vue'
 import DistanceScreen from './screens/DistanceScreen.vue'
 import GameScreen from './screens/GameScreen.vue'
+import HeartCatchScreen from './screens/HeartCatchScreen.vue'
+import WishScreen from './screens/WishScreen.vue'
 import FinalScreen from './screens/FinalScreen.vue'
+
+import CatEasterEgg from './screens/CatEasterEgg.vue'
 
 const step = ref(1)
 
 const currentScreen = computed(() => {
   if (step.value === 1) return IntroScreen
   if (step.value === 2) return DistanceScreen
-  if (step.value === 3) return GameScreen
-  return FinalScreen
+  if (step.value === 3) return GameScreen          // memory
+  if (step.value === 4) return HeartCatchScreen    // 💗 ловимо сердечка
+  if (step.value === 5) return WishScreen          // 😼 драматичний вибір
+  return FinalScreen                               // фінал
 })
 
 function nextStep() {
-  if (step.value < 4) step.value += 1
+  if (step.value < 6) step.value += 1
 }
 
 function restart() {
@@ -58,10 +68,8 @@ function restart() {
   background-position: center;
   background-repeat: no-repeat;
 
-  /* ОЦЕ БЛЮР */
   filter: blur(6px) brightness(0.9) saturate(1.1);
-
-  transform: scale(1.08); /* щоб не було білих країв після blur */
+  transform: scale(1.08);
   z-index: -2;
 }
 

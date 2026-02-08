@@ -14,9 +14,18 @@
         @click="flipCard(card)"
       >
         <template v-if="card.flipped || card.matched">
-          <img v-if="card.type === 'img'" class="photo" :src="card.img" alt="" />
+          <!-- Фото вантажимо ТІЛЬКИ коли відкрито/вгадано -->
+          <img
+            v-if="card.type === 'img'"
+            class="photo"
+            :src="card.img"
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />
           <span v-else class="label">{{ card.text }}</span>
         </template>
+
         <span v-else class="back">💗</span>
       </button>
     </div>
@@ -29,21 +38,21 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { playClick } from '../lib/audio'
 
 const emit = defineEmits(['next'])
 
 // 8 пар = 16 карток
 const pairs = [
-  { id: 1, img: '/photos/photo1.jpg', text: 'Перше спільне фото' },
-  { id: 2, img: '/photos/photo2.png', text: 'Перше фото перед першим спільним фото' },
-  { id: 3, img: '/photos/photo3.jpg', text: 'Ми щасливі разом' },
-  { id: 4, img: '/photos/photo3.png', text: 'Останнє спільне фото' },
-  { id: 5, img: '/photos/photo4.jpg', text: '2 місяці разом' },
-  { id: 6, img: '/photos/photo6.jpg', text: 'Влітку' },
-  { id: 7, img: '/photos/photo7.jpg', text: 'Випускний' },
-  { id: 8, img: '/photos/photo8.jpg', text: 'Лабубик' },
+  { id: 1, img: '/photos/photo1.webp', text: 'Перше спільне фото' },
+  { id: 2, img: '/photos/photo2.webp', text: 'Перше фото перед першим спільним фото' },
+  { id: 3, img: '/photos/photo3.webp', text: 'Ми щасливі разом' },
+  { id: 4, img: '/photos/photo4.webp', text: 'Останнє спільне фото' },
+  { id: 5, img: '/photos/photo5.webp', text: '2 місяці разом' },
+  { id: 6, img: '/photos/photo6.webp', text: 'Влітку' },
+  { id: 7, img: '/photos/photo7.webp', text: 'Випускний' },
+  { id: 8, img: '/photos/photo8.webp', text: 'Лабубик' },
 ]
 
 function buildDeck() {
@@ -118,18 +127,33 @@ function reshuffle() {
   lock.value = false
   finished.value = false
 }
+
+/* ✅ Preload фоток у фоні (щоб при перевертанні не чекати) */
+function preloadImages(urls) {
+  for (const url of urls) {
+    const img = new Image()
+    img.decoding = 'async'
+    img.loading = 'lazy'
+    img.src = url
+  }
+}
+
+onMounted(() => {
+  const urls = pairs.map((p) => p.img)
+
+  // щоб не лагало — у "вільний" час
+  const ric = window.requestIdleCallback || ((cb) => setTimeout(cb, 250))
+  ric(() => preloadImages(urls))
+})
 </script>
 
 <style scoped>
-/* Робимо так, щоб влізло в екран */
 .screen-card.game {
-  /* твоя загальна обгортка лишається, ми тільки додаємо */
   max-height: calc(100vh - 120px);
   overflow: auto;
   padding-bottom: 14px;
 }
 
-/* Верх робимо компактнішим */
 .top h2 {
   margin: 0 0 6px;
 }
@@ -137,7 +161,6 @@ function reshuffle() {
   margin: 0 0 10px;
 }
 
-/* 16 карток: компактний грід */
 .grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -145,7 +168,6 @@ function reshuffle() {
   margin: 10px 0 12px;
 }
 
-/* Картка: зменшуємо внутрішній паддінг і радіус */
 .memory-card {
   aspect-ratio: 1 / 1;
   border: 3px solid var(--border);
@@ -157,7 +179,6 @@ function reshuffle() {
   justify-content: center;
   padding: clamp(5px, 0.8vw, 8px);
   overflow: hidden;
-  /* щоб реально влізло на невисоких екранах */
   min-height: clamp(74px, 9.5vh, 118px);
 }
 
@@ -183,12 +204,16 @@ function reshuffle() {
   padding: 6px;
 }
 
-/* Кнопки завжди видно внизу (без болю) */
 .actions {
   position: sticky;
   bottom: 0;
   padding-top: 10px;
-  background: linear-gradient(180deg, rgba(255, 241, 246, 0) 0%, rgba(255, 241, 246, 0.92) 35%, rgba(255, 241, 246, 1) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 241, 246, 0) 0%,
+    rgba(255, 241, 246, 0.92) 35%,
+    rgba(255, 241, 246, 1) 100%
+  );
   display: flex;
   justify-content: center;
   gap: 12px;
